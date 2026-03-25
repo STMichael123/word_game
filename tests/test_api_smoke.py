@@ -32,3 +32,17 @@ def test_api_smoke_submit_boss_export() -> None:
     r3 = c.post('/api/export', json={})
     assert r3.status_code == 200
     assert 'story_text' in r3.json()
+
+
+def test_skirmish_skill_api_returns_debug() -> None:
+    c = TestClient(app)
+
+    start = c.post('/api/submit', json={'text': '主动出手战斗'})
+    assert start.status_code == 200
+    assert start.json()['scene_mode'] == 'skirmish'
+
+    skill = c.post('/api/skirmish/skill', json={'skill': '轻功'})
+    assert skill.status_code == 200
+    payload = skill.json()
+    assert 'debug' in payload
+    assert isinstance(payload['debug'], dict)

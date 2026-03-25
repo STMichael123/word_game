@@ -13,72 +13,72 @@ class Encounter:
 
 LOCATIONS: dict[str, dict[str, object]] = {
     "青石镇": {
-        "desc": "小镇依山傍水，青石铺路，客栈与药铺挤在一条街上。人不多，却总有江湖消息流转。",
+        "desc": "青石镇表面仍是寻常市井，归去来客栈、韩记棺材铺与镇西渡口却各自压着一层说不出口的阴影。人情、流言与灭口痕迹都在这里交错。",
         "encounters": [
-            Encounter("客栈风波", "npc", 4),
-            Encounter("市井流言", "mystery", 4),
-            Encounter("药铺欠账", "npc", 3),
-            Encounter("暗巷偷袭", "combat", 3),
-            Encounter("路边遗落的包裹", "loot", 2),
+            Encounter("归去来客栈耳语", "npc", 4),
+            Encounter("顾长风死讯流言", "mystery", 4),
+            Encounter("药铺旧债", "npc", 3),
+            Encounter("黑松探子灭口", "combat", 3),
+            Encounter("街角遗落的密札", "loot", 2),
         ],
         "travel_to": ["雁回山道", "青竹林", "断桥渡口"],
     },
     "雁回山道": {
-        "desc": "山道蜿蜒，风从崖下卷起，行商少见，刀客常来。",
+        "desc": "雁回山道如今不只是险路，更像一条专门截断密信、镖队与旧部联系的绞索。风声越急，越像有人在林间等你犯错。",
         "encounters": [
-            Encounter("山贼拦路", "combat", 5),
-            Encounter("落单镖师", "npc", 3),
-            Encounter("石壁剑痕", "mystery", 2),
-            Encounter("断崖寒风", "rest", 1),
+            Encounter("黑松伏弩手", "combat", 5),
+            Encounter("失散镖师", "npc", 3),
+            Encounter("被截断的密信痕迹", "mystery", 2),
+            Encounter("断崖避风处", "rest", 1),
         ],
         "travel_to": ["青石镇", "黑松岭", "古寺残钟"],
     },
     "青竹林": {
-        "desc": "竹影如海，风过如涛。林深处常有隐士与妖魅传闻。",
+        "desc": "青竹林仍像旧日缓冲地带，许多不愿公开露面的线人、采药人和暂避风头的江湖客都可能在这里留下痕迹。",
         "encounters": [
-            Encounter("竹林迷阵", "mystery", 4),
-            Encounter("毒蛇出没", "combat", 3),
+            Encounter("竹林迷踪", "mystery", 4),
+            Encounter("埋伏的刀手", "combat", 3),
             Encounter("采药人求助", "npc", 3),
-            Encounter("灵泉一口", "rest", 2),
-            Encounter("竹间藏物", "loot", 2),
+            Encounter("山泉歇脚", "rest", 2),
+            Encounter("竹间藏匣", "loot", 2),
         ],
         "travel_to": ["青石镇", "古寺残钟", "寒潭密径"],
     },
     "断桥渡口": {
-        "desc": "旧桥半断，渡口一叶扁舟。夜里水雾最浓，最易藏人。",
+        "desc": "断桥渡口白日破败，夜里却总有水雾和黑船一起出现。这里既能运货，也能运人，更能把一切目击者吞进河面以下。",
         "encounters": [
-            Encounter("水匪截舟", "combat", 4),
-            Encounter("渡船老叟", "npc", 4),
-            Encounter("河面鬼火", "mystery", 3),
-            Encounter("水边捡到银两", "loot", 1),
+            Encounter("黑船水匪", "combat", 4),
+            Encounter("渡口线人", "npc", 4),
+            Encounter("夜雾中的活口踪迹", "mystery", 3),
+            Encounter("漂来的账册残页", "loot", 1),
         ],
         "travel_to": ["青石镇", "黑松岭"],
     },
     "黑松岭": {
-        "desc": "黑松压顶，林间常年不见日光。传闻有邪门外道盘踞。",
+        "desc": "黑松岭已经不像匪寨，更像一套有地牢、有刑堂、有命令流转的控制枢纽。你越往里走，越能感觉到这里在替更大的秩序清路。",
         "encounters": [
-            Encounter("邪徒试剑", "combat", 5),
-            Encounter("密林黑影", "mystery", 3),
-            Encounter("废寨余烬", "loot", 2),
-            Encounter("迷路的书生", "npc", 2),
+            Encounter("黑松刑堂刀客", "combat", 5),
+            Encounter("密林命令暗号", "mystery", 3),
+            Encounter("废寨账册余烬", "loot", 2),
+            Encounter("被囚的知情人", "npc", 2),
         ],
         "travel_to": ["雁回山道", "断桥渡口", "寒潭密径"],
     },
     "古寺残钟": {
-        "desc": "寺破钟残，香火断绝。墙上仍有残存的戒律与壁画。",
+        "desc": "古寺残钟香火未绝，真史却已残缺。钟楼、藏经阁与偏殿里同时埋着净空守下来的旧卷，也埋着黑松会正在翻找的东西。",
         "encounters": [
             Encounter("残钟回响", "mystery", 4),
-            Encounter("寺中客僧", "npc", 3),
-            Encounter("伏击暗器", "combat", 2),
-            Encounter("香案下的旧匣", "loot", 2),
-            Encounter("清修一夜", "rest", 2),
+            Encounter("守钟僧净空", "npc", 3),
+            Encounter("寻卷刀客", "combat", 2),
+            Encounter("藏经阁旧匣", "loot", 2),
+            Encounter("偏殿调息", "rest", 2),
         ],
         "travel_to": ["雁回山道", "青竹林"],
     },
     "寒潭密径": {
-        "desc": "寒潭如镜，水下暗流牵着一条密径。踏错一步，便是生死。",
+        "desc": "寒潭密径是被埋掉的旧案坟场。百骨、寒铁、铸剑残台与水下秘道彼此咬合，像是在提醒后来者这里曾被人有计划地抹平。",
         "encounters": [
-            Encounter("潭下暗流", "combat", 4),
+            Encounter("潭边毒使", "combat", 4),
             Encounter("石门残纹", "mystery", 4),
             Encounter("寒铁碎片", "loot", 2),
             Encounter("闭息调息", "rest", 1),
@@ -101,17 +101,17 @@ LOOT_TABLE: list[tuple[str, int]] = [
 
 
 NPCS: list[str] = [
-    "渡船老叟",
-    "客栈掌柜",
-    "药铺郎中",
-    "落单镖师",
-    "寺中客僧",
+    "赛西施",
+    "韩青石",
+    "赵鹤年",
+    "净空",
+    "蔡海",
     "采药人",
-    "迷路书生",
+    "被囚的知情人",
 ]
 
 
-FACTIONS: list[str] = ["青竹门", "雁回镖局", "黑松会", "古寺遗脉"]
+FACTIONS: list[str] = ["雁回镖局", "黑松会", "残钟寺遗脉", "听雪楼", "水路帮盟"]
 
 
 def pick_weighted(rng: random.Random, items: list[tuple[object, int]]):

@@ -255,12 +255,20 @@ class OfflineLLMClient(LLMClient):
                     break
 
         fact_hint = ""
-        if known_facts.get("black_pine_activity"):
-            fact_hint = "黑松会的影子始终在暗处牵引局势。"
-        elif known_facts.get("escort_token"):
-            fact_hint = "你手里的旧信物说明此局早已牵扯到更深的旧账。"
+        if known_facts.get("final_master_lair_map"):
+            fact_hint = "宗师秘图已经在手，说明你离夜无锋真正藏身之处只差最后几步。"
+        elif known_facts.get("black_pine_is_front"):
+            fact_hint = "你已经确认黑松会只是外壳，眼前所有冲突都开始指向更深的宗师布局。"
+        elif known_facts.get("tianmen_master_nearby"):
+            fact_hint = "那句宗师将临天门的临死喊声仍在耳边，提醒你终局随时可能提前压下来。"
+        elif known_facts.get("leader_heading_to_alliance"):
+            fact_hint = "首领将赴会盟的消息让你明白，局势很快就会从暗潮转入公开拆局。"
         elif known_facts.get("black_wood_token"):
-            fact_hint = "黑木令牌在袖中发沉，提醒你真相已经逼近。"
+            fact_hint = "黑木令牌在袖中发沉，提醒你自己已经摸到黑松会真正的指挥层。"
+        elif known_facts.get("escort_token"):
+            fact_hint = "你手里的镖局信物说明此局早已牵扯到更深的旧账与内鬼。"
+        elif known_facts.get("black_pine_activity"):
+            fact_hint = "黑松会的影子始终在暗处牵引局势。"
 
         intro_clause = chapter_intro or f"{location}的风声里仍裹着未散的杀机"
         lines: list[str] = [f"{time_label}，{location}一带天色低沉。{intro_clause}，而你选择了“{action}”。"]

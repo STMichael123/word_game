@@ -498,7 +498,22 @@ def index(request: Request) -> HTMLResponse:
     .bar-fill {{
       height: 100%;
       background: var(--bar-fill);
-      transition: width 400ms ease;
+      transition: width 220ms cubic-bezier(0.22, 0.8, 0.24, 1), filter 120ms ease, box-shadow 120ms ease;
+    }}
+    .bar-fill.combat-finish {{
+      filter: saturate(1.55) brightness(1.1);
+      box-shadow: 0 0 0 1px rgba(139, 28, 28, 0.18), 0 0 12px rgba(139, 28, 28, 0.45);
+      animation: combat-finish-flash 140ms ease-in-out 0s 4 alternate;
+    }}
+    @keyframes combat-finish-flash {{
+      0% {{
+        background: var(--loss);
+        filter: saturate(1.05) brightness(1);
+      }}
+      100% {{
+        background: #d74b4b;
+        filter: saturate(1.85) brightness(1.22);
+      }}
     }}
 
     /* 增减徽章 */
@@ -776,6 +791,8 @@ def index(request: Request) -> HTMLResponse:
   let prevState = null;
   let busy = false;
   let currentOptions = [];
+  let combatFinishTimer = null;
+  const COMBAT_FINISH_HOLD_MS = 1000;
 
   /* ══════════════════════════════════════════════════════════
      侧边栏渲染
@@ -810,6 +827,73 @@ def index(request: Request) -> HTMLResponse:
     if (el) el.style.width = (maxVal > 0 ? Math.round(val / maxVal * 100) : 0) + "%";
   }}
 
+  function clearCombatFinishTimer() {{
+    if (combatFinishTimer) {{
+      clearTimeout(combatFinishTimer);
+      combatFinishTimer = null;
+    }}
+  }}
+
+  function clearCombatFinishFx() {{
+    ["bar-skirmish", "bar-boss"].forEach(id => {{
+      const el = document.getElementById(id);
+      if (el) el.classList.remove("combat-finish");
+    }});
+  }}
+
+  function triggerCombatFinishFx(kind) {{
+    const id = kind === "boss" ? "bar-boss" : "bar-skirmish";
+    const el = document.getElementById(id);
+    if (!el) return;
+    el.classList.remove("combat-finish");
+    void el.offsetWidth;
+    el.classList.add("combat-finish");
+  }}
+
+  function cloneState(sd) {{
+    return sd ? JSON.parse(JSON.stringify(sd)) : sd;
+  }}
+
+  function shouldHoldCombatFinish(data) {{
+    const debug = data && data.debug ? data.debug : {{}};
+    return debug.skirmish === "won" || debug.boss === "won";
+  }}
+
+  async function renderStateWithCombatFinishHold(data) {{
+    const sd = data && data.state_data ? data.state_data : null;
+    if (!sd) return;
+
+    clearCombatFinishTimer();
+    if (!shouldHoldCombatFinish(data)) {{
+      renderState(sd);
+      return;
+    }}
+
+    const frozen = cloneState(sd);
+    if (data.debug && data.debug.skirmish === "won") {{
+      frozen.skirmish_active = true;
+      frozen.skirmish_hp = 0;
+      frozen.skirmish_next_move = "败亡";
+    }}
+    if (data.debug && data.debug.boss === "won") {{
+      frozen.boss_active = true;
+      frozen.boss_hp = 0;
+      frozen.boss_next_move = "伏诛";
+    }}
+
+    renderState(frozen);
+    triggerCombatFinishFx(data.debug && data.debug.boss === "won" ? "boss" : "skirmish");
+    setIdleStatus("最后一击命中，对手应声倒地……");
+
+    await new Promise(resolve => {{
+      combatFinishTimer = setTimeout(() => {{
+        combatFinishTimer = null;
+        renderState(sd);
+        resolve();
+      }}, COMBAT_FINISH_HOLD_MS);
+    }});
+  }}
+
   function showDelta(id, newVal, oldVal) {{
     const el = document.getElementById(id);
     if (!el) return;
@@ -822,6 +906,8 @@ def index(request: Request) -> HTMLResponse:
   }}
 
   function renderState(sd) {{
+    clearCombatFinishTimer();
+    clearCombatFinishFx();
     const p = prevState;
     const exportBtn = document.getElementById("export-btn");
     if (exportBtn) exportBtn.style.display = sd.can_export ? "" : "none";
@@ -1240,7 +1326,7 @@ def index(request: Request) -> HTMLResponse:
       try {{
         const data = await postJson("/api/boss/skill", {{ skill: b.dataset.skill }});
         wait.remove();
-        if (data.state_data) renderState(data.state_data);
+        if (data.state_data) await renderStateWithCombatFinishHold(data);
         renderSystemMessages(data.system_messages || []);
         if (shouldSuppressMainDialog(data)) {{
           clearDialogOptions();
@@ -1266,7 +1352,7 @@ def index(request: Request) -> HTMLResponse:
       try {{
         const data = await postJson("/api/skirmish/skill", {{ skill: b.dataset.skill }});
         wait.remove();
-        if (data.state_data) renderState(data.state_data);
+        if (data.state_data) await renderStateWithCombatFinishHold(data);
         renderSystemMessages(data.system_messages || []);
         if (shouldSuppressMainDialog(data)) {{
           clearDialogOptions();
@@ -1461,6 +1547,7 @@ def api_boss_skill(req: SkillRequest, request: Request) -> JSONResponse:
         "narration": str(turn.get("narration") or ""),
         "options": turn.get("options") or [],
         "system_messages": turn.get("system_messages") or [],
+        "debug": turn.get("debug") or {},
         "state_data": _get_state_data(engine),
         "scene_mode": _scene_mode_from_state_data(_get_state_data(engine)),
         "error": "",
@@ -1481,6 +1568,7 @@ def api_skirmish_skill(req: SkillRequest, request: Request) -> JSONResponse:
         "narration": str(turn.get("narration") or ""),
         "options": turn.get("options") or [],
         "system_messages": turn.get("system_messages") or [],
+        "debug": turn.get("debug") or {},
         "state_data": _get_state_data(engine),
         "scene_mode": _scene_mode_from_state_data(_get_state_data(engine)),
         "error": "",

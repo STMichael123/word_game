@@ -36,3 +36,15 @@ def test_stage_transition_emits_chapter_intro_message() -> None:
     joined = "\n".join(str(x) for x in msgs)
     assert "第2章·雁回山路" in joined
     assert "本章冲突" in joined
+
+
+def test_opening_scene_stage_option_executes_without_clarify_and_updates_relation() -> None:
+    e = GameEngine()
+    e.client = _MockClient()
+
+    opening = e.opening_scene()
+    pick = next(opt for opt in (opening.get("options") or []) if str(opt.get("target") or "") == "赛西施")
+    turn = e.step(str(pick.get("text") or ""))
+
+    assert bool(turn.get("debug", {}).get("clarify")) is False
+    assert int(e.state.relations.get("赛西施", 0)) >= 1

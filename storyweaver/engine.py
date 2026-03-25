@@ -83,7 +83,7 @@ class GameEngine:
         self._sync_memory_document()
 
     def _new_state(self) -> GameState:
-        st = GameState(location=random_location(self.rng))
+        st = GameState(location="青石镇")
         st.flags["progress"] = 0
         st.flags["stage_idx"] = 0
         st.flags["turn"] = 0
@@ -300,12 +300,23 @@ class GameEngine:
         if not stage:
             return False
 
-        for key, need in stage.goal_counters.items():
-            if int(counters.get(key, 0)) < int(need):
+        goal_routes = list(stage.goal_routes or [])
+        if not goal_routes and stage.goal_counters:
+            goal_routes = [stage.goal_counters]
+        if goal_routes:
+            goal_met = any(
+                all(int(counters.get(key, 0)) >= int(need) for key, need in route.items())
+                for route in goal_routes
+            )
+            if not goal_met:
                 return False
 
-        for fact in stage.required_facts:
-            if not bool(st.known_facts.get(fact)):
+        fact_routes = list(stage.required_fact_routes or [])
+        if not fact_routes and stage.required_facts:
+            fact_routes = [stage.required_facts]
+        if fact_routes:
+            fact_met = any(all(bool(st.known_facts.get(fact)) for fact in route) for route in fact_routes)
+            if not fact_met:
                 return False
 
         return True
@@ -382,30 +393,83 @@ class GameEngine:
         epilogue = str(self.state.flags.get("game_over_epilogue") or "").strip()
         if not epilogue:
             epilogue = "你在错综局势中错失了最后的窗口，江湖风向彻底逆转。"
+        if "超过时限" in reason:
+            lead = f"你在当前章节拖延太久：{reason}"
+        elif "败于" in reason:
+            lead = f"你命丧江湖：{reason}"
+        else:
+            lead = f"你在江湖争斗中败下阵来：{reason}"
         return {
-            "narration": f"你在当前章节拖延太久：{reason}\n本局失败。{epilogue}\n请输入 /reset 重开新档。",
+            "narration": f"{lead}\n本局失败。{epilogue}\n请输入 /reset 重开新档。",
             "options": [
                 {"id": "g1", "text": "/reset", "intent": "unknown", "target": None, "risk": "low"},
             ],
             "debug": {"game_over": True, "reason": reason},
         }
-    def _generate_failure_epilogue(self, reason: str) -> str:
+
+    def _trigger_game_over(
+        self,
+        reason: str,
+        *,
+        event_data: Optional[dict[str, Any]] = None,
+        failure_context: Optional[dict[str, Any]] = None,
+    ) -> TurnResult:
+        st = self.state
+        st.flags["game_over"] = True
+        st.flags["game_over_reason"] = reason
+        st.flags["game_over_epilogue"] = self._generate_failure_epilogue(reason, failure_context=failure_context)
+        st.push_event("game_over", reason, event_data or {})
+
+        fix = enforce_state_invariants(st)
+        if fix.changed:
+            st.push_event("consistency_fix", "状态已自动修复", {"notes": fix.notes})
+
+        turn = self._build_game_over_turn(reason)
+        st.last_options = turn["options"]
+        return turn
+
+    def _generate_failure_epilogue(self, reason: str, *, failure_context: Optional[dict[str, Any]] = None) -> str:
         st = self.state
         idx = int(st.flags.get("stage_idx", 0))
         stage = stage_by_index(idx)
         stage_title = stage.title if stage else "无名章节"
         recent = self._ensure_story_memory()[-3:]
         recent_text = "\n".join(f"- {x.get('summary', '')}" for x in recent if isinstance(x, dict))
+        context = failure_context or {}
+        failure_kind = str(context.get("kind") or "generic").strip() or "generic"
+        combat_log = context.get("combat_log")
+        combat_log_lines = [str(x).strip() for x in combat_log if str(x).strip()] if isinstance(combat_log, list) else []
+        enemy_name = str(context.get("name") or "").strip()
+        enemy_style = str(context.get("style") or "").strip()
+        enemy_faction = str(context.get("faction") or "").strip()
+        finisher = str(context.get("finisher") or "").strip()
+
+        if failure_kind in {"skirmish", "boss"}:
+            instruction = (
+                "写一段90~180字的武侠死亡结局。必须明确主角已经战死，不得出现被救下、改日再战、尚可重来的表述；"
+                "必须吸收战斗日志与敌手信息，写清最后一击或败因如何发生；不要给选项。"
+            )
+        else:
+            instruction = "写一段80~140字的武侠失败结局，必须有余韵，不要给选项。"
+
         prompt_payload = {
             "stage": stage_title,
             "reason": reason,
             "recent": recent_text,
-            "instruction": "写一段80~140字的武侠失败结局，必须有余韵，不要给选项。",
+            "failure_kind": failure_kind,
+            "combat_context": {
+                "enemy_name": enemy_name,
+                "enemy_style": enemy_style,
+                "enemy_faction": enemy_faction,
+                "finisher": finisher,
+                "combat_log": combat_log_lines[-8:],
+            },
+            "instruction": instruction,
         }
         try:
             resp = self.client.chat(
                 [
-                    {"role": "system", "content": "你是武侠小说作者，产出简洁失败结局段落。"},
+                    {"role": "system", "content": "你是武侠小说作者，产出单段失败结局。严格吸收用户给定事实，不要输出选项，不要改写已发生的战斗结果。"},
                     {"role": "user", "content": json.dumps(prompt_payload, ensure_ascii=False)},
                 ]
             )
@@ -417,7 +481,11 @@ class GameEngine:
                 return txt[:220]
         except Exception:
             pass
-        return "你回望来路，方知一步迟缓便是满盘皆输。此役虽败，江湖仍留你再起的火种。"
+        if failure_kind in {"skirmish", "boss"}:
+            enemy_part = enemy_name or "强敌"
+            finisher_part = f"，最终折在对方一式{finisher}之下" if finisher else ""
+            return f"你与{enemy_part}鏖战至力竭，刀风透骨，气血尽散{finisher_part}。这一局终究没能再续，江湖传闻只余你最后一战的残响。"
+        return "你回望来路，方知一步迟缓便是满盘皆输。此局既终，旧愿与旧盟都沉入风雪，再无人替你续写后文。"
 
     def _check_stage_timeout(self) -> Optional[TurnResult]:
         st = self.state
@@ -432,13 +500,7 @@ class GameEngine:
         timing = self._get_stage_timing()
         if timing["limit"] > 0 and timing["elapsed"] > timing["limit"]:
             reason = f"{stage.title} 超过时限 {timing['limit']} 回合"
-            st.flags["game_over"] = True
-            st.flags["game_over_reason"] = reason
-            st.flags["game_over_epilogue"] = self._generate_failure_epilogue(reason)
-            st.push_event("game_over", reason, {"stage": stage.id, "elapsed": timing["elapsed"]})
-            turn = self._build_game_over_turn(reason)
-            st.last_options = turn["options"]
-            return turn
+            return self._trigger_game_over(reason, event_data={"stage": stage.id, "elapsed": timing["elapsed"]})
 
         return None
 
@@ -476,11 +538,7 @@ class GameEngine:
     def opening_scene(self) -> TurnResult:
         st = self.state
         stage = stage_by_index(int(st.flags.get("stage_idx", 0)))
-        options = [
-            {"id": "o1", "text": "先在镇中打听黑松会的风声", "intent": "query", "target": None, "risk": "low"},
-            {"id": "o2", "text": "沿街市与客栈观察可疑人物", "intent": "explore", "target": None, "risk": "medium"},
-            {"id": "o3", "text": "拜访愿意开口的店家与旅人", "intent": "negotiate", "target": None, "risk": "low"},
-        ]
+        options = self._current_stage_scene_options(limit=3)
         st.last_options = options
         st.flags["opening_briefing_shown"] = True
         st.flags["final_goal_shown"] = True
@@ -488,7 +546,7 @@ class GameEngine:
         st.flags["pending_stage_intro_idx"] = -1
         intro = self._chapter_intro_text(int(st.flags.get("stage_idx", 0))) if stage else ""
         return {
-            "narration": "你踏入青石镇的这一刻，就已经被卷进一场从市井延向天门旧局的风暴。江湖不会先替你解释一切，但你必须尽快看懂局势。",
+            "narration": "你落脚青石镇时，归去来客栈的流言、韩记棺材铺的冷尸与镇西渡口的夜雾已经把顾长风的失踪案扯成一张网。江湖不会等你准备周全，你只能先选一条线，把黑松会埋在镇中的手摸出来。",
             "options": options,
             "debug": {"opening": True},
             "system_messages": [
@@ -603,8 +661,29 @@ class GameEngine:
         mapping = {
             "black_wood_token": "黑木令牌",
             "escort_token": "镖局信物",
+            "qingstone_black_pine": "青石镇中的黑松暗线",
+            "han_qingshi_fake_body": "韩青石验过替身尸体",
+            "escort_ambush_contract": "有人买赵鹤年镖队的命",
             "black_pine_activity": "黑松会活动痕迹",
+            "black_pine_on_mountain": "雁回山道的黑松伏兵",
+            "temple_scroll_missing": "残钟寺真卷已被拆走",
+            "black_pine_temple_search": "黑松会正在残钟寺搜卷",
+            "jingkong_true_scroll": "净空守着未被篡改的旧卷",
+            "cold_iron_route": "寒铁碎片被送往黑松岭",
+            "black_pine_route_map": "通往黑松岭的寒潭湿地图",
+            "tingxuelou_involved": "听雪楼已介入寒潭暗线",
+            "black_pine_leader_uses_tianmen": "黑松首领动用天门旧部",
+            "leader_heading_to_alliance": "黑松首领将赴三门会盟",
+            "gu_changfeng_captive": "顾长风仍被黑松会控制",
+            "canglang_is_not_master": "苍狼并非真正主使",
+            "alliance_false_flag": "会盟中有人准备嫁祸黑松会",
+            "black_pine_bridge_plot": "黑松会在断桥布伏",
             "escort_guild_infiltrated": "镖局内鬼迹象",
+            "caihai_water_route": "蔡海的人控制着关键水路",
+            "tianmen_master_nearby": "宗师将临天门",
+            "black_pine_is_front": "黑松会只是宗师外壳",
+            "final_master_lair_map": "宗师闭关地秘图",
+            "shenyue_forces_moving": "沈岳已调动正道人手",
         }
         return mapping.get(key, key)
 
@@ -613,6 +692,10 @@ class GameEngine:
         if not text:
             return []
         names: list[str] = []
+        key_names = ["顾长风", "韩青石", "赵鹤年", "净空", "苏婉晴", "沈岳", "蔡海", "赛西施", "夜无锋", "苍狼"]
+        for name in key_names:
+            if name in text:
+                names.append(name)
         names.extend(re.findall(r"[\u4e00-\u9fff]{1,4}·[\u4e00-\u9fff]{1,4}", text))
         names.extend(
             re.findall(
@@ -627,6 +710,126 @@ class GameEngine:
                 continue
             uniq.append(name)
         return uniq[:6]
+
+    def _current_stage_scene_options(self, limit: int = 3) -> list[dict[str, Any]]:
+        idx = int(self.state.flags.get("stage_idx", 0))
+        travelable = set(travel_options(self.state.location))
+        templates: dict[int, list[dict[str, Any]]] = {
+            0: [
+                {"id": "s1", "text": "去归去来客栈向赛西施追问顾长风死讯", "intent": "query", "target": "赛西施", "risk": "low"},
+                {"id": "s2", "text": "去韩记棺材铺验那具替身尸体", "intent": "explore", "target": "韩青石", "risk": "medium"},
+                {"id": "s3", "text": "去镇西渡口盯夜雾里的黑船暗哨", "intent": "explore", "target": "镇西渡口", "risk": "medium"},
+            ],
+            1: [
+                {"id": "s1", "text": "去接应赵鹤年镖队并问清密信去向", "intent": "query", "target": "赵鹤年", "risk": "medium"},
+                {"id": "s2", "text": "沿雁回山道摸清伏弩手的埋伏位", "intent": "explore", "target": "雁回山道", "risk": "medium"},
+                {"id": "s3", "text": "先截住拦镖人探他们受谁买命", "intent": "combat", "target": None, "risk": "high"},
+            ],
+            2: [
+                {"id": "s1", "text": "去残钟寺见净空问旧卷下落", "intent": "query", "target": "净空", "risk": "low"},
+                {"id": "s2", "text": "搜查钟楼与藏经阁里的调包痕迹", "intent": "explore", "target": "藏经阁", "risk": "medium"},
+                {"id": "s3", "text": "先拿下寻卷刀客逼问谁在寺中搜卷", "intent": "combat", "target": None, "risk": "high"},
+            ],
+            3: [
+                {"id": "s1", "text": "沿寒潭石门继续追寒铁碎片去向", "intent": "explore", "target": "寒潭密径", "risk": "medium"},
+                {"id": "s2", "text": "查听雪楼是否已经派人进了寒潭", "intent": "query", "target": "苏婉晴", "risk": "medium"},
+                {"id": "s3", "text": "先清掉潭边毒使夺那张湿地图", "intent": "combat", "target": None, "risk": "high"},
+            ],
+            4: [
+                {"id": "s1", "text": "潜进黑松岭外圈查顾长风被囚方位", "intent": "explore", "target": "顾长风", "risk": "high"},
+                {"id": "s2", "text": "找机会逼苍狼的人开口说实话", "intent": "query", "target": "苍狼", "risk": "medium"},
+                {"id": "s3", "text": "直接闯刑堂拿人和账册", "intent": "combat", "target": None, "risk": "high"},
+            ],
+            5: [
+                {"id": "s1", "text": "先和苏婉晴谈条件换会盟暗账", "intent": "negotiate", "target": "苏婉晴", "risk": "medium"},
+                {"id": "s2", "text": "去见沈岳看他肯不肯公开站队", "intent": "negotiate", "target": "沈岳", "risk": "medium"},
+                {"id": "s3", "text": "找蔡海打听谁握着断桥水路", "intent": "query", "target": "蔡海", "risk": "medium"},
+            ],
+            6: [
+                {"id": "s1", "text": "去奈何桥前线看看赵鹤年的人还剩多少", "intent": "query", "target": "赵鹤年", "risk": "medium"},
+                {"id": "s2", "text": "先护住顾长风和手头证据别被一锅端", "intent": "negotiate", "target": "顾长风", "risk": "high"},
+                {"id": "s3", "text": "先破断桥伏兵的第一轮合围", "intent": "combat", "target": None, "risk": "high"},
+            ],
+            7: [
+                {"id": "s1", "text": "沿终局秘径摸进夜无锋闭关地", "intent": "explore", "target": "终局秘径", "risk": "high"},
+                {"id": "s2", "text": "先稳住顾长风别让他被旧案反噬", "intent": "negotiate", "target": "顾长风", "risk": "medium"},
+                {"id": "s3", "text": "拿宗师近侍开刀逼夜无锋现身", "intent": "combat", "target": None, "risk": "high"},
+            ],
+        }
+        options: list[dict[str, Any]] = []
+        for opt in templates.get(idx, []):
+            if str(opt.get("intent", "")) == "travel" and str(opt.get("target") or "") not in travelable:
+                continue
+            options.append(dict(opt))
+            if len(options) >= limit:
+                break
+        return options
+
+    def _merge_stage_scene_options(self, options: list[dict[str, Any]], *, limit: int = 4) -> list[dict[str, Any]]:
+        stage_options = self._current_stage_scene_options(limit=2)
+        if not stage_options:
+            return options
+        merged = [*stage_options, *options]
+        return self._dedup_and_balance_options(merged)[:limit]
+
+    def _touch_npc_relation(self, npc: str, delta: int, note: str) -> None:
+        if not npc or delta == 0:
+            return
+        st = self.state
+        new_value = max(-10, min(12, int(st.relations.get(npc, 0)) + int(delta)))
+        st.relations[npc] = new_value
+        registry = self._ensure_npc_registry()
+        prev = registry.get(npc, {}) if isinstance(registry.get(npc), dict) else {}
+        registry[npc] = {
+            "relation": new_value,
+            "last_loc": st.location,
+            "note": note or str(prev.get("note") or ""),
+            "interactions": list(prev.get("interactions", [])) if isinstance(prev.get("interactions"), list) else [],
+        }
+
+    def _apply_stage_npc_drift(self, intent: Intent, target: Optional[str], outcomes: dict[str, Any]) -> list[str]:
+        stage_idx = int(self.state.flags.get("stage_idx", 0))
+        intent_key = intent.value
+        target_text = str(target or "")
+        profiles: dict[int, dict[str, dict[str, int]]] = {
+            0: {"赛西施": {"query": 2, "negotiate": 1}, "韩青石": {"explore": 2, "query": 1}},
+            1: {"赵鹤年": {"query": 2, "combat": 1, "travel": 1}},
+            2: {"净空": {"query": 2, "explore": 1, "negotiate": 1}},
+            3: {"苏婉晴": {"query": 2, "explore": 1}, "顾长风": {"explore": 1}},
+            4: {"顾长风": {"explore": 2, "combat": 1, "query": 1}, "苍狼": {"query": 1}},
+            5: {"苏婉晴": {"negotiate": 2, "query": 1}, "沈岳": {"negotiate": 1, "combat": 1}, "蔡海": {"query": 2, "negotiate": 1}},
+            6: {"赵鹤年": {"query": 1, "combat": 2}, "顾长风": {"negotiate": 2, "query": 1}, "沈岳": {"combat": 1}, "苏婉晴": {"query": 1}},
+            7: {"顾长风": {"negotiate": 2, "explore": 1}, "沈岳": {"combat": 1}, "苏婉晴": {"query": 1}},
+        }
+        stage_profiles = profiles.get(stage_idx, {})
+        if not stage_profiles:
+            return []
+
+        touched: list[str] = []
+        matched = False
+        for npc, weights in stage_profiles.items():
+            if npc and target_text and npc not in target_text and target_text not in npc:
+                continue
+            delta = int(weights.get(intent_key, 0))
+            if intent == Intent.NEGOTIATE and target_text and npc in target_text and not bool(outcomes.get("negotiate_won")):
+                delta = -1
+            if delta == 0:
+                continue
+            matched = True
+            mood = "态度稍缓" if delta > 0 else "神色更冷"
+            self._touch_npc_relation(npc, delta, f"第{self.state.day}日，{npc}因你在本章的行动而{mood}。")
+            touched.append(f"{npc}对你的态度有了新的偏移。")
+
+        if matched or target_text:
+            return touched[:2]
+
+        for npc, weights in stage_profiles.items():
+            delta = int(weights.get(intent_key, 0))
+            if delta <= 0:
+                continue
+            self._touch_npc_relation(npc, 1, f"第{self.state.day}日，你的行动让{npc}开始重新评估你。")
+            return [f"你的这一手开始影响{npc}对你的看法。"]
+        return []
 
     def _record_story_memory(
         self,
@@ -790,6 +993,9 @@ class GameEngine:
     def _build_clarification_options(self, intent: Intent) -> list[dict[str, Any]]:
         st = self.state
         options: list[dict[str, Any]] = []
+        stage_options = [opt for opt in self._current_stage_scene_options(limit=4) if str(opt.get("intent") or "") == intent.value]
+        if stage_options:
+            return stage_options[:3]
 
         if intent == Intent.TRAVEL:
             for i, loc in enumerate(travel_options(st.location)[:3], start=1):
@@ -1021,17 +1227,33 @@ class GameEngine:
             "negotiate_win": "谈判突破",
             "explore_count": "实地探索",
         }
-        progress_bits: list[str] = []
-        for key, need in stage.goal_counters.items():
-            progress_bits.append(f"{counter_labels.get(key, key)} {int(counters.get(key, 0))}/{int(need)}")
+        goal_routes = list(stage.goal_routes or [])
+        if not goal_routes and stage.goal_counters:
+            goal_routes = [stage.goal_counters]
+        fact_routes = list(stage.required_fact_routes or [])
+        if not fact_routes and stage.required_facts:
+            fact_routes = [stage.required_facts]
 
-        missing_facts = [self._fact_label(x) for x in stage.required_facts if not bool(self.state.known_facts.get(x))]
+        route_progress: list[str] = []
+        for idx, route in enumerate(goal_routes, start=1):
+            pieces = [f"{counter_labels.get(key, key)} {int(counters.get(key, 0))}/{int(need)}" for key, need in route.items()]
+            if pieces:
+                route_progress.append(f"路线{idx}：" + "；".join(pieces))
+
+        fact_progress: list[str] = []
+        for idx, route in enumerate(fact_routes, start=1):
+            missing = [self._fact_label(x) for x in route if not bool(self.state.known_facts.get(x))]
+            if missing:
+                fact_progress.append(f"证据路线{idx}待补：" + "、".join(missing))
+            elif route:
+                fact_progress.append(f"证据路线{idx}已齐")
+
         timing = self._get_stage_timing()
         parts = [f"当前时间是{self._time_label()}。本章目标是：{stage.objective}。"]
-        if progress_bits:
-            parts.append("当前关键进度：" + "；".join(progress_bits) + "。")
-        if missing_facts:
-            parts.append("仍未拿到的关键事实/证物：" + "、".join(missing_facts) + "。")
+        if route_progress:
+            parts.append("当前可行推进路线：" + "；".join(route_progress) + "。")
+        if fact_progress:
+            parts.append("当前关键事实状态：" + "；".join(fact_progress) + "。")
         if int(timing.get("remaining", 0)) > 0:
             parts.append(f"本章剩余大约 {int(timing.get('remaining', 0))} 回合缓冲，不能继续在同一类动作上空转。")
         return "".join(parts)
@@ -1205,39 +1427,29 @@ class GameEngine:
         logs.append(f"你看出对方下一招气机微露：{next_pred}。")
 
         if st.health == 0:
-            st.health = max(10, st.max_health // 6)
-            st.stamina = max(8, st.max_stamina // 7)
             sk["active"] = False
-            sk["last_log"] = logs + ["你强行撤出战圈，暂且保住性命。"]
-            sim_result = {
-                "delta": {
-                    "health": st.health - prev_health,
-                    "stamina": st.stamina - prev_stamina,
-                    "silver": st.silver - prev_silver,
-                    "reputation": st.reputation - prev_reputation,
-                    "progress": int(st.flags.get("progress", 0)) - prev_progress,
-                },
-                "detail_lines": [
-                    f"你在遭遇战中不敌{sk.get('name')}，被迫后撤。",
-                    *logs,
-                    "你强行撤出战圈，暂且保住性命。",
-                ],
-                "encounter": {
-                    "kind": "combat",
+            sk["won"] = False
+            sk["last_log"] = logs + ["你在这一战中力尽倒下。"]
+            turn = self._trigger_game_over(
+                f"遭遇战败于{sk.get('name')}",
+                event_data={
+                    "kind": "skirmish",
                     "name": sk.get("name"),
                     "style": sk.get("style"),
                     "faction": sk.get("faction"),
                     "origin": sk.get("origin"),
+                    "skill": skill,
                 },
-                "intent_outcomes": {"combat_won": False, "negotiate_won": False, "target": sk.get("name")},
-            }
-            stage_notes = self._update_story_stage(Intent.COMBAT, sim_result)
-            turn = self._generate_story_turn(
-                action=f"在遭遇战中使出{skill}后败退",
-                sim_result=sim_result,
-                stage_notes=stage_notes,
+                failure_context={
+                    "kind": "skirmish",
+                    "name": sk.get("name"),
+                    "style": sk.get("style"),
+                    "faction": sk.get("faction"),
+                    "finisher": move,
+                    "combat_log": logs,
+                },
             )
-            turn["debug"]["skirmish"] = "lose_round"
+            turn["debug"]["skirmish"] = "lost"
             return turn
 
         sk["turn"] = int(sk.get("turn", 1)) + 1
@@ -1397,15 +1609,23 @@ class GameEngine:
         logs.append(f"Boss 使出【{move}】，你受到 {dmg} 点伤害。")
         logs.append(f"你感到其下一式气机已起：{next_pred}。")
         if st.health == 0:
-            st.health = max(12, st.max_health // 7)
-            st.stamina = max(8, st.max_stamina // 8)
             bs["active"] = False
-            bs["last_log"] = logs + ["你败退疗伤，Boss 战暂时中断。"]
-            return {
-                "narration": "你被重创后撤，暂退三十里。待调息后可再开终章决战。",
-                "options": self.state.last_options or [],
-                "debug": {"boss": "lose_round"},
-            }
+            bs["won"] = False
+            bs["last_log"] = logs + ["你在终章决战中倒下。"]
+            turn = self._trigger_game_over(
+                f"终章决战败于{bs.get('name')}",
+                event_data={"kind": "boss", "name": bs.get("name"), "skill": skill, "phase": bs.get("phase")},
+                failure_context={
+                    "kind": "boss",
+                    "name": bs.get("name"),
+                    "style": f"第{bs.get('phase')}阶段",
+                    "faction": "天门",
+                    "finisher": move,
+                    "combat_log": logs,
+                },
+            )
+            turn["debug"]["boss"] = "lost"
+            return turn
 
         bs["turn"] = int(bs["turn"]) + 1
         bs["last_log"] = logs
@@ -1507,6 +1727,14 @@ class GameEngine:
             chip = self.rng.randint(4, 10)
             delta["health"] -= chip
             detail_lines.append(f"暗处偷袭擦身而过，你仍受伤 {chip} 点。")
+
+        detail_lines.extend(
+            self._apply_stage_npc_drift(
+                intent,
+                target,
+                outcomes=intent_outcomes,
+            )
+        )
 
         return {
             "delta": delta,
@@ -1763,6 +1991,7 @@ class GameEngine:
             {"id": "o2", "text": "就地调息休整", "intent": "rest", "target": None, "risk": "low"},
             {"id": "o3", "text": "前往下一处地界", "intent": "travel", "target": self.rng.choice(travel_options(st.location)), "risk": "medium"},
         ]
+        options = self._merge_stage_scene_options(options)
         narration = "\n".join(sim_lines[:8]) + f"\n你此刻身在{st.location}，江湖暗流仍在涌动。"
         return {"narration": narration, "options": options, "debug": {"fallback": True}}
 
@@ -1823,7 +2052,7 @@ class GameEngine:
             reason = str(llm_meta.get("error", "fallback") or "fallback")
             system_messages.append(f"【叙事状态】在线叙事模型当前不可用，已切换为离线兜底生成。原因：{reason}。")
 
-        turn["options"] = self._dedup_and_balance_options(turn.get("options", []))
+        turn["options"] = self._merge_stage_scene_options(turn.get("options", []))
         turn["options"] = self._apply_stage_guidance_to_options(turn.get("options", []))
 
         if not any(o.get("intent") == "travel" for o in turn["options"]):

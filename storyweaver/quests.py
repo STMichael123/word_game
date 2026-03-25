@@ -19,6 +19,8 @@ class Stage:
     unlock_flag: Optional[str] = None
     goal_counters: dict[str, int] = field(default_factory=dict)
     required_facts: list[str] = field(default_factory=list)
+    goal_routes: list[dict[str, int]] = field(default_factory=list)
+    required_fact_routes: list[list[str]] = field(default_factory=list)
     estimated_turns: int = 10
     fail_turn_budget: int = 16
     win_guidance: str = ""
@@ -26,21 +28,24 @@ class Stage:
 
 
 STORY_BACKGROUND = (
-    "十年前天门内乱后，宗师一脉销声匿迹，江湖表面恢复平静，暗地里却有一支名为黑松会的势力"
-    "不断渗入镖局、渡口、寺院与山道。近月来，青石镇频现失踪、劫镖与灭口之事，像是有人在为一场更大的风暴清路。"
+    "十年前，天门宗内乱骤起，正朔一脉被清洗，幸存者四散江湖。此后多年，关于天门的真相被层层篡改，"
+    "而一支名为黑松会的势力则悄然渗入镖局、渡口、寺院与山道。近月来，青石镇接连出现失踪、劫镖、运人与灭口，"
+    "像是有人正在替一场更大的秩序重构提前清路。"
 )
 
 PLAYER_OPENING_STANCE = (
-    "你以无名客的身份踏入青石镇，本为追查旧友失踪，却在第一夜便听见黑松会、镖路密信与天门旧部的名字同时出现。"
-    "你意识到这不只是地方帮会的暗斗，而是一场会改写江湖秩序的连环局。"
+    "你以无名客的身份踏入青石镇，本是为了追查旧友顾长风的失踪。可在抵达后的第一夜，黑松会、镖路密信、天门旧部与假死灭口"
+    "几个名字竟在同一处交缠出现。你意识到顾长风卷入的不是一桩地方旧案，而是一场足以改写江湖秩序的连环局。"
 )
 
 FINAL_GOAL_SUMMARY = (
-    "你的最终目标不是赢几场战斗，而是沿着黑松会这条线追到幕后宗师夜无锋，查明他为何重启天门旧局，并在终局前做出属于你的江湖抉择。"
+    "你的最终目标不是只赢几场战斗，而是沿着黑松会这条线追到幕后宗师夜无锋，查明天门旧局被谁篡改、顾长风为何还活着、"
+    "以及夜无锋究竟想用什么方式重塑江湖。到了终局，你必须决定自己是以武、以人、以财，还是以证据来结束这场风暴。"
 )
 
 ENDING_PATH_HINT = (
-    "一路上，你可以靠武学压服群敌、靠人心聚拢同盟、靠财势布局、或靠证据逼近真相；不同积累会把你引向不同结局。"
+    "一路上，你可以强闯、潜入、调查、谈判、设局、交易，也可以聚拢人心或公开真相。不同路径积累的不是同一种胜利，"
+    "它们会把你带向截然不同的江湖收束。"
 )
 
 
@@ -48,147 +53,159 @@ MAIN_STORY: list[Stage] = [
     Stage(
         "s1",
         "青石镇异闻",
-        "打听三条关于黑松会的情报",
-        "青石镇的客栈、街口和药铺都在传同一个名字：黑松会。你初到此地，必须先摸清谁在撒网、谁在沉默。",
-        "本章冲突在于情报混乱且真假难辨。你既要从街谈巷议里筛出真线索，也要避免过早惊动潜伏在镇上的耳目。",
-        "青石镇是整条主线的入口。若你在此看不清黑松会的触角，后面每一章都会像在迷雾里挥刀。",
+        "确认黑松会在青石镇的运作方式，并查明顾长风死讯真假",
+        "青石镇表面仍是寻常市井，可客栈流言、药铺旧债、渡口夜雾与棺材铺验尸都在指向同一件事：黑松会已经把手伸进了镇中。",
+        "本章冲突在于局势尚未明牌。你不知道谁是饵、谁是线人、谁已经被收买，也不知道顾长风的死讯究竟是真灭口还是假尸惑人。",
+        "这是整条主线的起点。玩家若能在这里看清黑松会如何掳人、运人和封口，后面所有章节都会有更稳的落脚点。",
         6,
-        "青石镇/客栈",
+        "青石镇/客栈/渡口/棺材铺",
         5,
         20,
         "chapter_1_done",
-        goal_counters={"query_count": 3},
+        goal_counters={"query_count": 2},
+        goal_routes=[{"query_count": 2}, {"explore_count": 1, "negotiate_win": 1}, {"query_count": 1, "explore_count": 1}],
         estimated_turns=6,
         fail_turn_budget=12,
-        win_guidance="先通过打听与交涉建立信息优势，避免无意义硬战。",
-        preferred_intents=["query", "negotiate"],
+        win_guidance="第一章重在摸清暗网结构。打听、验尸、渡口调查、与赛西施或孙家周旋都可成为有效推进，不必拘泥于单一路径。",
+        preferred_intents=["query", "explore", "negotiate"],
     ),
     Stage(
         "s2",
         "雁回山路",
-        "护送镖师穿过山道并击退劫匪",
-        "你顺着情报追到雁回山路，发现有人正在系统性截断镖路。被围上的不只是镖师，更是通往幕后真相的第一条活线。",
-        "本章冲突是护送与伏击并行。你必须在赶路、护人和迎战之间做取舍，找出是谁在山道上替黑松会办事。",
-        "若镖路被彻底切断，后面的密信、人物与证据都会断流；这一章决定你能否保住调查的活口。",
+        "确认山道封锁背后的真实目的，并保住通往残钟寺的联系线",
+        "雁回山道已成黑松会截断旧部联系的险关。赵鹤年的镖队、密信与伏兵都说明这里截的不是货，而是通往旧案真相的活线。",
+        "本章冲突是护人、护信、查内鬼三线并行。你既可能护镖同行，也可能先设伏、审俘或反查山道中的通风者。",
+        "若这条山道彻底被黑松会掌控，后面的残钟寺、净空与天门旧部联系都会被活活掐断。",
         14,
         "雁回山道",
         8,
         35,
         "chapter_2_done",
         goal_counters={"combat_win": 1},
+        goal_routes=[{"combat_win": 1}, {"query_count": 1, "explore_count": 1}, {"combat_win": 1, "query_count": 1}],
         estimated_turns=8,
         fail_turn_budget=14,
-        win_guidance="山路章节以护送与战斗为核心，优先清除威胁后再移动。",
-        preferred_intents=["combat", "travel"],
+        win_guidance="第二章允许护镖、设伏、审俘、伪装同行等多种推进。只要能确认黑松会在切断联络，并保住或记住密信线索，就算达成核心目标。",
+        preferred_intents=["combat", "explore", "query", "travel"],
     ),
     Stage(
         "s3",
         "古寺残钟",
-        "在古寺寻找失落戒律并解读线索",
-        "山路线索把你引到古寺残钟。寺中戒律残缺、僧众各怀心思，像有人早一步把关键页卷抽走，只留下供人误判的空壳。",
-        "本章冲突在于线索碎裂且现场被刻意扰乱。你需要在古寺各处拼回缺失信息，确认谁在借佛门旧迹藏匿真相。",
-        "古寺是黑松会与更高层布局第一次真正重叠的地方。你若能读懂残卷，就会第一次摸到终局棋手的影子。",
+        "在残钟寺找到被篡改前的历史入口，并确认寒潭密径与正朔旧部的关系",
+        "残钟寺表面香火未绝，暗里却是被篡改历史覆盖的真相废墟。净空、假僧、残卷、地宫与旧号都在等一个能把碎片重新拼起来的人。",
+        "本章冲突在于真假信息并存。你可能先见净空，也可能先撞见假僧、禁区机关或被偷换的经卷，必须在伪历史中找出真正通往旧案的入口。",
+        "这一章是黑松会阴影首次与天门旧史正面重叠的地方。读懂这里，玩家才会第一次真正理解夜无锋问题不只是强敌，而是正统本身被篡改。",
         22,
         "古寺残钟",
         10,
         40,
         "chapter_3_done",
-        goal_counters={"explore_count": 3},
+        goal_counters={"explore_count": 2},
+        goal_routes=[{"explore_count": 2}, {"query_count": 1, "explore_count": 1}, {"negotiate_win": 1, "explore_count": 1}],
         estimated_turns=10,
         fail_turn_budget=18,
-        win_guidance="古寺重线索收集，优先探索与询问，不要频繁休整浪费回合。",
-        preferred_intents=["explore", "query"],
+        win_guidance="第三章重在拼接历史断层。探索、询问、取得净空信任、辨认真伪文本都算有效推进，不要求固定先后顺序。",
+        preferred_intents=["explore", "query", "negotiate"],
     ),
     Stage(
         "s4",
         "寒潭密径",
-        "进入寒潭密径，取得寒铁碎片",
-        "古寺中断裂的记载指向寒潭密径。那里的寒铁碎片既是证物，也是开启下一层真相的钥匙，各方势力都在抢先落子。",
-        "本章冲突在于环境险恶与争夺同步升级。你需要顶住寒潭与埋伏的双重压力，把碎片先一步掌握在手里。",
-        "寒铁碎片关系到后续势力谈判与真相拼图。拿不到它，你后面就只能被别人牵着走。",
+        "在寒潭密径取得与掌门信物相关的关键证物，并确认听雪楼开始介入",
+        "寒潭密径是天门旧局留下的坟场。百骨洞、铸剑台与寒铁碎片一起证明，正朔旧部并非无故消失，而是在这里被有计划地埋葬。",
+        "本章冲突在于环境险恶、证物争夺与追兵步步紧逼同步发生。你既可以潜行、强闯、解谜，也可能顺着遗骸与旧器一点点拼出真相。",
+        "寒铁碎片不只是道具，它关系到天门掌门信物、旧案正统与后续联盟是否会相信你。",
         30,
         "寒潭密径",
         12,
         50,
         "chapter_4_done",
-        goal_counters={"explore_count": 5},
+        goal_counters={"explore_count": 3},
+        goal_routes=[{"explore_count": 3}, {"explore_count": 2, "combat_win": 1}, {"query_count": 1, "explore_count": 2}],
         estimated_turns=12,
         fail_turn_budget=20,
-        win_guidance="寒潭章节重在持续探索，必要时小幅休整后继续推进。",
-        preferred_intents=["explore", "rest"],
+        win_guidance="第四章是环境叙事与夺证并行的章节。潜行、强夺、辨真伪都可推进，只要玩家拿到寒铁碎片或其可靠旁证，并意识到听雪楼已经下场。",
+        preferred_intents=["explore", "combat", "rest", "query"],
     ),
     Stage(
         "s5",
         "黑松暗潮",
-        "查明黑松会首领身份",
-        "拿到寒潭线索后，你终于逼近黑松岭核心。黑松会不再只是暗处传闻，而是一张有层级、有纪律、并且在替某人遮掩真正意图的网。",
-        "本章冲突在于你必须把“黑松会是谁”推进到“黑松会在替谁做事”。只有首领身份浮出水面，终局敌人才会现形。",
-        "这是主线由地方黑帮案转向江湖大局的转折点。查明首领身份，意味着你第一次真正逼近幕后宗师。",
+        "突破黑松会表层迷雾，确认其真正主使并找出顾长风与会盟计划的关系",
+        "黑松岭不再只是匪寨，而是一套严密运转的控制枢纽。苍狼也许只是看门人，真正发号施令的人藏在更深处，而顾长风正被囚在这套机器的中心。",
+        "本章冲突在于真假主使、地牢线、账册线与潜入路线同时存在。你不一定要正面闯寨，也可以策反、伪装、潜入或沿命令流转反推真正的主人。",
+        "这一章是故事从地方暗潮转向江湖大局的决定性转折。玩家要第一次明确：黑松会只是外壳，夜无锋才是布局之人。",
         40,
         "黑松岭",
         15,
         70,
         "chapter_5_done",
         required_facts=["black_wood_token"],
+        goal_routes=[{"explore_count": 2, "query_count": 1}, {"combat_win": 1, "explore_count": 1}, {"negotiate_win": 1, "explore_count": 1}],
         estimated_turns=12,
         fail_turn_budget=22,
-        win_guidance="黑松暗潮必须围绕令牌与真相，优先探索和打听相关线索。",
-        preferred_intents=["explore", "query"],
+        required_fact_routes=[["black_wood_token"], ["leader_heading_to_alliance"]],
+        win_guidance="第五章允许从地牢、账册、内线、假投名状等多线切入。关键不是固定救人方式，而是确认黑松会外壳之下的真正布局者与会盟目标。",
+        preferred_intents=["explore", "query", "combat", "negotiate"],
     ),
     Stage(
         "s6",
         "三门会盟",
-        "在三方势力间谈判并稳住局势",
-        "你带着证据走进三门会盟，却发现所有人都想利用你手里的线索。有人想借你揭局，有人想借会盟嫁祸，还有人想让混乱先于真相发生。",
-        "本章冲突不是单纯说服，而是在有限时间内判断谁值得结盟、谁在布陷阱，并防止局势彻底失控。",
-        "这一章决定终局前你站在孤身一人还是有人同路的位置，也会直接影响你面对夜无锋时能借到多少江湖之力。",
+        "在三方势力之间试探、交易与拆局，决定终局前你以何种姿态入场",
+        "三门会盟不是简单的结盟仪式，而是一场利益、名分、情报和恐惧同时发力的政治斗争。每个人都在看你手里究竟握着几分真相、几分筹码。",
+        "本章冲突不是单纯说服，而是判断谁能合作、谁可利用、谁会背叛，并决定你要成为聚盟者、操盘者还是孤行者。",
+        "这一章直接决定终局前你能借到多少江湖之力，也决定夜无锋会以何种方式被迫提前暴露。",
         52,
-        "青石镇/古寺",
+        "三门会盟台/回雁楼",
         18,
         90,
         "chapter_6_done",
-        goal_counters={"negotiate_win": 2},
+        goal_counters={"negotiate_win": 1},
+        goal_routes=[{"negotiate_win": 1, "query_count": 1}, {"query_count": 2}, {"negotiate_win": 1, "explore_count": 1}],
         estimated_turns=10,
         fail_turn_budget=20,
-        win_guidance="会盟阶段以谈判为主，战斗只用于破局。",
-        preferred_intents=["negotiate", "query"],
+        required_fact_routes=[["leader_heading_to_alliance"], ["black_wood_token"], ["black_pine_bridge_plot"]],
+        win_guidance="第六章是一座政治场。游说、亮证、布陷、交易、反向操盘都能推进，只要你让至少一方动起来，并逼出夜无锋布局的一部分。",
+        preferred_intents=["negotiate", "query", "explore", "combat"],
     ),
     Stage(
         "s7",
         "断桥血战",
-        "在断桥击败伏击者并保住密信",
-        "会盟之后，所有暗流都涌向断桥。你握住的密信足以揭开幕后布局，也足以让所有想灭口的人同时现身。",
-        "本章冲突在于伏击与争夺骤然公开化。你必须保住密信、击退来敌，并在血战中看清谁是真正替宗师铺路的人。",
-        "断桥之战是终局前的筛选。能否保住密信，决定你是带着主动权进入终章，还是被迫在残缺信息下豪赌。",
+        "在奈何桥一役中保住至少一半主动权，并为终局做出不可回退的取舍",
+        "会盟之后，所有暗流都在奈何桥上公开冲撞。桥上不只有追兵，还有盟友、旧友、证据、退路和牺牲。你必须在同一场混乱里选择先保什么、先舍什么。",
+        "本章冲突在于护人、护物、断后、诈降和突围同时发生。真正可怕的不是敌人多强，而是你无法把一切都带到终局。",
+        "奈何桥是终局前的最大筛选。玩家带着怎样的损失、怎样的信义和怎样的残缺进入终章，将直接决定最后一战的气质。",
         64,
-        "断桥渡口",
+        "断桥渡口/奈何桥",
         20,
         120,
         "chapter_7_done",
-        goal_counters={"combat_win": 3},
+        goal_counters={"combat_win": 2},
+        goal_routes=[{"combat_win": 2}, {"combat_win": 1, "explore_count": 1}, {"combat_win": 1, "query_count": 1}],
         estimated_turns=12,
         fail_turn_budget=22,
-        win_guidance="断桥血战必须快速建立战斗优势，减少无效移动。",
-        preferred_intents=["combat", "explore"],
+        required_fact_routes=[["black_pine_bridge_plot"], ["escort_guild_infiltrated"], ["tianmen_master_nearby"]],
+        win_guidance="第七章不是单一大战，而是高压局势处理。护人、护证、断桥、诈降、反埋伏都算有效手段，重点是带着某种代价保住进入终局的资格。",
+        preferred_intents=["combat", "explore", "query", "negotiate"],
     ),
     Stage(
         "s8",
         "终局天门",
-        "集齐线索并迎战幕后宗师",
-        "当所有证据都指向天门旧局，你终于明白黑松会只是外壳，真正要重写江湖秩序的人一直在更高处等你。",
-        "本章冲突在于最后的抉择与决断。你不仅要迎战夜无锋，还要决定自己要用哪一种方式结束这场风暴。",
-        "终局天门会回收前七章埋下的所有积累。你的武学、人脉、证据与选择，都会在这里决定江湖最后记住怎样的你。",
+        "在天门旧址揭开旧局真相，并以自己的方式终结夜无锋的秩序",
+        "当所有证据、旧账与存活下来的人都指向天门旧址，你终于明白黑松会只是夜无锋用来清理道路的刀。真正等待你的，是一整套由恐惧与正统伪装起来的新秩序。",
+        "本章冲突在于最后的价值选择。你不仅要面对夜无锋本人的武力与说服，还要决定江湖到底应当由什么活下去。",
+        "终局会回收前七章留下的所有积累与代价。你一路以来选择以武、以人、以财或以证推动局势，都会在这里得到回应。",
         78,
-        "黑松岭/寒潭",
+        "天门旧址/黑松岭/寒潭秘道",
         35,
         180,
         "final_clear",
-        goal_counters={"combat_win": 4},
+        goal_counters={"combat_win": 2},
         required_facts=["black_wood_token"],
+        goal_routes=[{"combat_win": 2}, {"negotiate_win": 1, "query_count": 1}, {"query_count": 2, "explore_count": 1}],
+        required_fact_routes=[["black_wood_token"], ["black_pine_is_front", "final_master_lair_map"], ["leader_heading_to_alliance", "tianmen_master_nearby"]],
         estimated_turns=14,
         fail_turn_budget=26,
-        win_guidance="终局阶段先补齐关键事实，再进入高风险战斗决断。",
-        preferred_intents=["explore", "combat"],
+        win_guidance="终局允许攻山、潜入、公开审判、单刀赴会、先救人后翻案等多种形态。关键不是单一打赢，而是以你一路累积出的方式击穿夜无锋的秩序。",
+        preferred_intents=["explore", "combat", "query", "negotiate"],
     ),
 ]
 
@@ -200,7 +217,7 @@ SIDE_QUESTS: list[dict[str, object]] = [
         "trigger_locations": ["青石镇"],
         "trigger_intents": ["query", "negotiate", "explore"],
         "resolve_intents": ["negotiate", "query"],
-        "objective": "帮药铺追回欠款或协商分期",
+        "objective": "解决孙老实的债务困局，并顺势摸到黑松会胁迫药铺的线头",
         "reward": {"silver": 35, "item": "上品止血散", "reputation": 4},
     },
     {
@@ -209,7 +226,7 @@ SIDE_QUESTS: list[dict[str, object]] = [
         "trigger_locations": ["断桥渡口"],
         "trigger_intents": ["explore", "query"],
         "resolve_intents": ["explore", "combat"],
-        "objective": "调查夜雾中失踪的商旅",
+        "objective": "查出黑船如何在夜雾里转运活口，并决定是救人、烧船还是反向追踪暗哨",
         "reward": {"silver": 45, "item": "渡口水图", "reputation": 5},
     },
     {
@@ -218,7 +235,7 @@ SIDE_QUESTS: list[dict[str, object]] = [
         "trigger_locations": ["古寺残钟"],
         "trigger_intents": ["explore", "query"],
         "resolve_intents": ["explore", "query"],
-        "objective": "收集三页残卷交给客僧",
+        "objective": "在残钟寺钟楼、藏经阁与塔林之间找齐宗门记事残卷，补全被篡改的旧史",
         "reward": {"silver": 30, "item": "清心诀抄本", "reputation": 6},
     },
     {
@@ -227,7 +244,7 @@ SIDE_QUESTS: list[dict[str, object]] = [
         "trigger_locations": ["雁回山道", "黑松岭"],
         "trigger_intents": ["query", "explore", "combat"],
         "resolve_intents": ["combat", "travel"],
-        "objective": "护送落单镖师安全返镇",
+        "objective": "护送失散镖师小伍子返镇，让雁回镖局的信义与后手得以延续",
         "reward": {"silver": 55, "item": "镖局信物", "reputation": 7},
     },
 ]
