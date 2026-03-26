@@ -498,7 +498,7 @@ class GameEngine:
             return None
 
         timing = self._get_stage_timing()
-        if timing["limit"] > 0 and timing["elapsed"] > timing["limit"]:
+        if timing["limit"] > 0 and timing["elapsed"] >= timing["limit"]:
             reason = f"{stage.title} 超过时限 {timing['limit']} 回合"
             return self._trigger_game_over(reason, event_data={"stage": stage.id, "elapsed": timing["elapsed"]})
 
@@ -1122,6 +1122,10 @@ class GameEngine:
             {"id": "a3", "text": "先调息整备，稳住伤势再说", "intent": "rest", "target": None, "risk": "low"},
         ]
 
+    @staticmethod
+    def _combat_guard_value(st: GameState, extra_guard: int = 0) -> int:
+        return st.martial_level * 2 + st.inner_power // 20 + extra_guard
+
     def _remember_known_fact_list(self, key: str, value: str) -> None:
         st = self.state
         raw = st.known_facts.get(key)
@@ -1421,7 +1425,7 @@ class GameEngine:
         sk["next_move"] = next_pred
         enemy_atk = int(sk.get("atk", 0))
         guard_bonus = 5 if st.flags.pop("skirmish_guard_buff", 0) else 0
-        enemy_damage = max(1, enemy_atk + self.rng.randint(0, 5) - (st.martial_level + guard_bonus))
+        enemy_damage = max(1, enemy_atk + self.rng.randint(0, 5) - self._combat_guard_value(st, guard_bonus))
         st.health = max(0, st.health - enemy_damage)
         logs.append(f"{sk.get('name')}使出【{move}】，你受到 {enemy_damage} 点伤害。")
         logs.append(f"你看出对方下一招气机微露：{next_pred}。")
@@ -1466,7 +1470,7 @@ class GameEngine:
         bs = self._boss_state()
         if bs.get("active"):
             return True, "Boss 战已经开始。"
-        max_hp = 260 + self.state.martial_level * 18
+        max_hp = 230 + self.state.martial_level * 14
         bs.update(
             {
                 "active": True,
@@ -1559,7 +1563,7 @@ class GameEngine:
                 logs.append("你祭出绝技，一式破空，罡风裂石。")
 
         if st.stamina < stamina_cost:
-            p_dmg = max(3, p_dmg // 2)
+            p_dmg = max(4, (p_dmg * 3) // 4)
             logs.append("你体力不继，绝大部分劲力未能贯出。")
         st.stamina = max(0, st.stamina - stamina_cost)
         bs["hp"] = max(0, int(bs["hp"]) - p_dmg)
@@ -1604,7 +1608,7 @@ class GameEngine:
         }.get(move, 6)
         base_enemy = 10 + bs["phase"] * 4 + move_bonus + self.rng.randint(0, 6)
         guard_bonus = 6 if st.flags.pop("boss_guard_buff", 0) else 0
-        dmg = max(1, base_enemy - (st.martial_level + guard_bonus))
+        dmg = max(1, base_enemy - self._combat_guard_value(st, guard_bonus))
         st.health = max(0, st.health - dmg)
         logs.append(f"Boss 使出【{move}】，你受到 {dmg} 点伤害。")
         logs.append(f"你感到其下一式气机已起：{next_pred}。")
@@ -1665,6 +1669,15 @@ class GameEngine:
             delta["reputation"] += gain
             delta["progress"] += 2
             detail_lines.append(f"你收集到关键江湖消息，声望 +{gain}。")
+            stage_idx = int(st.flags.get("stage_idx", 0))
+            target_text = str(target or "")
+            if stage_idx == 4 and "苍狼" in target_text:
+                if not bool(st.known_facts.get("leader_heading_to_alliance")):
+                    record_fact(st, "leader_heading_to_alliance", True)
+                    detail_lines.append("你逼问出黑松首领将赴三门会盟的动向。")
+                if not bool(st.known_facts.get("gu_changfeng_captive")):
+                    record_fact(st, "gu_changfeng_captive", True)
+                    detail_lines.append("你顺藤摸瓜确认顾长风仍被黑松会扣在内圈。")
         elif intent == Intent.NEGOTIATE:
             win = self.rng.random() < 0.68
             if win:
@@ -1692,6 +1705,14 @@ class GameEngine:
             delta["stamina"] -= self.rng.randint(6, 12)
             delta["progress"] += 2
             detail_lines.append(f"你在{st.location}细细探查。")
+            stage_idx = int(st.flags.get("stage_idx", 0))
+            if stage_idx == 4:
+                if not bool(st.known_facts.get("gu_changfeng_captive")):
+                    record_fact(st, "gu_changfeng_captive", True)
+                    detail_lines.append("你顺着外圈守卫换防的缝隙，确认顾长风确实仍被囚在黑松岭内圈。")
+                if not bool(st.known_facts.get("leader_heading_to_alliance")):
+                    record_fact(st, "leader_heading_to_alliance", True)
+                    detail_lines.append("你截到一份急递口令，确认黑松首领近日将赴三门会盟。")
             if encounter.kind in {"loot", "mystery"} and self.rng.random() < 0.65:
                 loot = random_loot(self.rng)
                 st.inventory.append(loot)

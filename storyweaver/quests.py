@@ -139,7 +139,7 @@ MAIN_STORY: list[Stage] = [
         70,
         "chapter_5_done",
         required_facts=["black_wood_token"],
-        goal_routes=[{"explore_count": 2, "query_count": 1}, {"combat_win": 1, "explore_count": 1}, {"negotiate_win": 1, "explore_count": 1}],
+        goal_routes=[{"explore_count": 2, "query_count": 1}, {"combat_win": 1, "explore_count": 1}, {"negotiate_win": 1, "explore_count": 1}, {"explore_count": 3}],
         estimated_turns=12,
         fail_turn_budget=22,
         required_fact_routes=[["black_wood_token"], ["leader_heading_to_alliance"]],
