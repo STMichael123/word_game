@@ -15,6 +15,21 @@ def test_stage_timeout_triggers_game_over() -> None:
     assert any(str(o.get("text")) == "/reset" for o in turn["options"])
 
 
+def test_stage_timeout_triggers_when_limit_is_reached() -> None:
+    e = GameEngine()
+    st = e.state
+
+    # Stage 0 timeout budget is 12. The next step increments turn first, so 11
+    # here means the step reaches the limit exactly.
+    st.flags["stage_enter_turn"] = 0
+    st.flags["turn"] = 11
+
+    turn = e.step("探索四周")
+    assert bool(st.flags.get("game_over")) is True
+    assert "超过时限 12 回合" in str(st.flags.get("game_over_reason") or "")
+    assert "本局失败" in turn["narration"]
+
+
 def test_game_over_blocks_normal_progress() -> None:
     e = GameEngine()
     st = e.state
@@ -44,7 +59,7 @@ def test_failure_epilogue_is_generated_and_cached() -> None:
 
 def test_stage_guidance_marks_preferred_options() -> None:
     e = GameEngine()
-    # stage 0 prefers query / negotiate
+    # stage 0 prefers query / explore / negotiate
     e.state.flags["stage_idx"] = 0
     raw = [
         {"id": "o1", "text": "先去巡街", "intent": "explore", "target": None, "risk": "low"},
@@ -52,5 +67,5 @@ def test_stage_guidance_marks_preferred_options() -> None:
         {"id": "o3", "text": "上前交涉", "intent": "negotiate", "target": None, "risk": "medium"},
     ]
     guided = e._apply_stage_guidance_to_options(raw)
-    assert str(guided[0].get("intent")) in {"query", "negotiate"}
+    assert str(guided[0].get("intent")) in {"query", "explore", "negotiate"}
     assert str(guided[0].get("hint", "")) == "mainline"

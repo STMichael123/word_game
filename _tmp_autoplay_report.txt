@@ -1,0 +1,62 @@
+step 1 stage= 0 progress= 2 hp= 100 sta= 100 plan= ['query'] used= query source= option facts= []
+step 2 stage= 0 progress= 4 hp= 100 sta= 100 plan= ['query'] used= query source= option facts= []
+step 3 stage= 1 progress= 6 hp= 100 sta= 100 plan= ['query'] used= query source= option facts= []
+step 4 stage= 1 progress= 8 hp= 100 sta= 100 plan= ['query'] used= query source= option facts= []
+step 5 stage= 1 progress= 10 hp= 100 sta= 94 plan= ['explore'] used= explore source= option facts= []
+step 6 stage= 1 progress= 12 hp= 100 sta= 94 plan= ['query', 'explore'] used= query source= option facts= []
+step 7 stage= 2 progress= 14 hp= 100 sta= 94 plan= ['query', 'explore'] used= query source= option facts= []
+step 8 stage= 2 progress= 16 hp= 100 sta= 86 plan= ['explore'] used= explore source= option facts= []
+step 9 stage= 2 progress= 18 hp= 100 sta= 80 plan= ['explore'] used= explore source= option facts= []
+step 10 stage= 2 progress= 20 hp= 100 sta= 80 plan= ['query', 'explore'] used= query source= option facts= []
+step 11 stage= 3 progress= 22 hp= 100 sta= 80 plan= ['query', 'explore'] used= query source= option facts= []
+step 12 stage= 3 progress= 24 hp= 100 sta= 80 plan= ['query'] used= query source= option facts= []
+step 13 stage= 3 progress= 26 hp= 100 sta= 69 plan= ['explore'] used= explore source= option facts= []
+step 14 stage= 3 progress= 28 hp= 100 sta= 57 plan= ['explore'] used= explore source= option facts= []
+step 15 stage= 4 progress= 30 hp= 91 sta= 57 plan= ['query', 'explore', 'rest'] used= query source= option facts= []
+step 16 stage= 4 progress= 31 hp= 100 sta= 74 plan= ['rest'] used= rest source= manual facts= []
+step 17 stage= 4 progress= 32 hp= 100 sta= 97 plan= ['rest'] used= rest source= manual facts= []
+step 18 stage= 4 progress= 34 hp= 100 sta= 90 plan= ['explore', 'query'] used= explore source= option facts= ['gu_changfeng_captive', 'leader_heading_to_alliance']
+step 19 stage= 4 progress= 36 hp= 100 sta= 79 plan= ['explore', 'query'] used= explore source= option facts= ['gu_changfeng_captive', 'leader_heading_to_alliance']
+step 20 stage= 4 progress= 38 hp= 100 sta= 67 plan= ['explore', 'query'] used= explore source= option facts= ['gu_changfeng_captive', 'leader_heading_to_alliance']
+step 21 stage= 4 progress= 39 hp= 100 sta= 85 plan= ['rest'] used= rest source= manual facts= ['gu_changfeng_captive', 'leader_heading_to_alliance']
+step 22 stage= 5 progress= 41 hp= 100 sta= 75 plan= ['explore', 'query'] used= explore source= option facts= ['gu_changfeng_captive', 'leader_heading_to_alliance']
+step 23 stage= 5 progress= 43 hp= 100 sta= 75 plan= ['query'] used= query source= option facts= ['gu_changfeng_captive', 'leader_heading_to_alliance']
+step 24 stage= 5 progress= 45 hp= 100 sta= 75 plan= ['query'] used= query source= option facts= ['gu_changfeng_captive', 'leader_heading_to_alliance']
+step 25 stage= 5 progress= 47 hp= 100 sta= 75 plan= ['query', 'negotiate', 'explore'] used= query source= option facts= ['gu_changfeng_captive', 'leader_heading_to_alliance']
+step 26 stage= 5 progress= 49 hp= 100 sta= 75 plan= ['query', 'negotiate', 'explore'] used= query source= option facts= ['gu_changfeng_captive', 'leader_heading_to_alliance']
+step 27 stage= 5 progress= 51 hp= 100 sta= 75 plan= ['query', 'negotiate', 'explore'] used= query source= option facts= ['gu_changfeng_captive', 'leader_heading_to_alliance']
+step 28 stage= 6 progress= 53 hp= 100 sta= 75 plan= ['query', 'negotiate', 'explore'] used= query source= option facts= ['gu_changfeng_captive', 'leader_heading_to_alliance']
+step 29 stage= 6 progress= 54 hp= 100 sta= 98 plan= ['rest'] used= rest source= manual facts= ['gu_changfeng_captive', 'leader_heading_to_alliance']
+step 30 stage= 6 progress= 54 hp= 100 sta= 98 plan= ['combat'] used= combat source= option facts= ['black_pine_activity', 'enemy_factions_seen', 'enemy_names_seen', 'enemy_origins_seen', 'gu_changfeng_captive', 'leader_heading_to_alliance']
+skirmish-step 轻功 {'skirmish': 'ongoing', 'skill': '轻功'} hp= 81 sta= 89 enemy= 121
+skirmish-step 轻功 {'skirmish': 'ongoing', 'skill': '轻功'} hp= 67 sta= 80 enemy= 104
+skirmish-step 内功 {'skirmish': 'ongoing', 'skill': '内功'} hp= 50 sta= 67 enemy= 71
+skirmish-step 轻功 {'skirmish': 'ongoing', 'skill': '轻功'} hp= 32 sta= 58 enemy= 58
+skirmish-step 内功 {'skirmish': 'ongoing', 'skill': '内功'} hp= 17 sta= 45 enemy= 28
+skirmish-step 绝技 {'llm_parse': {'raw': '{"narration": "第16日上午，青石镇一带天色低沉。会盟之后，所有暗流都在奈何桥上公开冲撞。桥上不只有追兵，还有盟友、旧友、证据、退路和牺牲。你必须在同一场混乱里选择先保什么、先舍什么，而你选择了“在遭遇战中使出绝技并取胜”。你心里还压着第16日上午的余波：你辨认出此人属于黑松会，因此这一举并不是临时起意，而是顺着既有线索继续逼近局心。这一番周旋之下，你在遭遇战中击败了黑松死士；你一式绝技轰然出手，杀势如开碑裂石；你对黑松死士造成 33 点伤害。可你身上旧伤未平，若再强行硬闯，下一次碰撞很可能就不是试探，而是生死。那句宗师将临天门的临死喊声仍在耳边，提醒你终局随时可能提前压下来。当前时间是第16日·白昼。本章目标是：在奈何桥一役中保住至少一半主动权，", "options": [{"text": "继续打听与“在奈何桥一役中保住至少一半主动权，并为终局做出不可回退的取舍”有关的消息", "intent": "query", "target": null, "risk": "low", "id": "o1"}, {"text": "转去青石镇外围侦察，看看是否有新痕迹", "intent": "explore", "target": null, "risk": "medium", "id": "o2"}, {"text": "试着与可疑人物周旋，套出更多消息", "intent": "negotiate", "target": null, "risk": "medium", "id": "o3"}, {"text": "主动挑一场短兵相接，逼出隐藏对手", "intent": "combat", "target": null, "risk": "high", "id": "o4"}]}', 'json_extracted': True, 'json_loaded': True, 'validated': True}, 'llm_mode': 'offline', 'llm_fallback_reason': 'fallback', 'skirmish': 'won'} hp= 17 sta= 25 enemy= 0
+step 31 stage= 6 progress= 58 hp= 35 sta= 39 plan= ['rest'] used= rest source= manual facts= ['black_pine_activity', 'combat_clues', 'enemy_factions_seen', 'enemy_names_seen', 'enemy_origins_seen', 'gu_changfeng_captive', 'leader_heading_to_alliance', 'tianmen_master_nearby']
+step 32 stage= 6 progress= 59 hp= 46 sta= 58 plan= ['rest'] used= rest source= manual facts= ['black_pine_activity', 'combat_clues', 'enemy_factions_seen', 'enemy_names_seen', 'enemy_origins_seen', 'gu_changfeng_captive', 'leader_heading_to_alliance', 'tianmen_master_nearby']
+step 33 stage= 6 progress= 60 hp= 57 sta= 73 plan= ['rest'] used= rest source= manual facts= ['black_pine_activity', 'combat_clues', 'enemy_factions_seen', 'enemy_names_seen', 'enemy_origins_seen', 'gu_changfeng_captive', 'leader_heading_to_alliance', 'tianmen_master_nearby']
+step 34 stage= 6 progress= 61 hp= 75 sta= 99 plan= ['rest'] used= rest source= manual facts= ['black_pine_activity', 'combat_clues', 'enemy_factions_seen', 'enemy_names_seen', 'enemy_origins_seen', 'gu_changfeng_captive', 'leader_heading_to_alliance', 'tianmen_master_nearby']
+step 35 stage= 6 progress= 62 hp= 93 sta= 100 plan= ['rest'] used= rest source= manual facts= ['black_pine_activity', 'combat_clues', 'enemy_factions_seen', 'enemy_names_seen', 'enemy_origins_seen', 'gu_changfeng_captive', 'leader_heading_to_alliance', 'tianmen_master_nearby']
+step 36 stage= 6 progress= 63 hp= 100 sta= 100 plan= ['rest'] used= rest source= manual facts= ['black_pine_activity', 'combat_clues', 'enemy_factions_seen', 'enemy_names_seen', 'enemy_origins_seen', 'gu_changfeng_captive', 'leader_heading_to_alliance', 'tianmen_master_nearby']
+step 37 stage= 7 progress= 65 hp= 100 sta= 100 plan= ['query'] used= query source= option facts= ['black_pine_activity', 'combat_clues', 'enemy_factions_seen', 'enemy_names_seen', 'enemy_origins_seen', 'gu_changfeng_captive', 'leader_heading_to_alliance', 'tianmen_master_nearby']
+boss-step 轻功 {'boss': 'ongoing', 'skill': '轻功'} hp= 97 sta= 90 boss_hp= 273 rage= 53
+boss-step 内功 {'boss': 'ongoing', 'skill': '内功'} hp= 90 sta= 76 boss_hp= 236 rage= 63
+boss-step 轻功 {'boss': 'ongoing', 'skill': '轻功'} hp= 85 sta= 66 boss_hp= 214 rage= 76
+boss-step 招架 {'boss': 'ongoing', 'skill': '招架'} hp= 84 sta= 58 boss_hp= 200 rage= 90
+boss-step 轻功 {'boss': 'ongoing', 'skill': '轻功'} hp= 81 sta= 48 boss_hp= 178 rage= 100
+boss-step 绝技 {'boss': 'ongoing', 'skill': '绝技'} hp= 75 sta= 26 boss_hp= 136 rage= 10
+boss-step 轻功 {'boss': 'ongoing', 'skill': '轻功'} hp= 59 sta= 16 boss_hp= 111 rage= 23
+boss-step 内功 {'boss': 'ongoing', 'skill': '内功'} hp= 44 sta= 2 boss_hp= 70 rage= 33
+boss-step 轻功 {'boss': 'ongoing', 'skill': '轻功'} hp= 35 sta= 0 boss_hp= 49 rage= 46
+boss-step 绝技 {'boss': 'ongoing', 'skill': '绝技'} hp= 25 sta= 0 boss_hp= 37 rage= 56
+boss-step 内功 {'boss': 'ongoing', 'skill': '内功'} hp= 7 sta= 0 boss_hp= 12 rage= 66
+boss-step 轻功 {'boss': 'won', 'ending': '义满江湖', 'ending_reasons': {'wudao': False, 'yiman': True, 'caifu': False, 'zhenxiang': False, 'npc_allies_ge3': True}} hp= 7 sta= 0 boss_hp= 0 rage= 79
+FINAL_CLEAR= True
+GAME_OVER= False
+ENDING= 义满江湖
+HP= 7 STA= 0
+BOSS_SEQ= ['轻功', '内功', '轻功', '招架', '轻功', '绝技', '轻功', '内功', '轻功', '绝技', '内功', '轻功']
+TRACE_TAIL= [(28, 6, 53, 100, 75, ['query', 'negotiate', 'explore'], 'query', 'option', {'gu_changfeng_captive': True, 'leader_heading_to_alliance': True}), (29, 6, 54, 100, 98, ['rest'], 'rest', 'manual', {'gu_changfeng_captive': True, 'leader_heading_to_alliance': True}), (30, 6, 54, 100, 98, ['combat'], 'combat', 'option', {'gu_changfeng_captive': True, 'leader_heading_to_alliance': True, 'enemy_names_seen': ['黑松死士'], 'enemy_factions_seen': ['黑松会'], 'black_pine_activity': True, 'enemy_origins_seen': ['断桥水雾']}), ('skirmish_seq', ['轻功', '轻功', '内功', '轻功', '内功', '绝技'], '黑松死士'), (31, 6, 58, 35, 39, ['rest'], 'rest', 'manual', {'gu_changfeng_captive': True, 'leader_heading_to_alliance': True, 'enemy_names_seen': ['黑松死士'], 'enemy_factions_seen': ['黑松会'], 'black_pine_activity': True, 'enemy_origins_seen': ['断桥水雾'], 'combat_clues': ['死士临死前喊出“宗师将临天门”，还说沈岳的人已经被逼到不得不提前动身。'], 'tianmen_master_nearby': True}), (32, 6, 59, 46, 58, ['rest'], 'rest', 'manual', {'gu_changfeng_captive': True, 'leader_heading_to_alliance': True, 'enemy_names_seen': ['黑松死士'], 'enemy_factions_seen': ['黑松会'], 'black_pine_activity': True, 'enemy_origins_seen': ['断桥水雾'], 'combat_clues': ['死士临死前喊出“宗师将临天门”，还说沈岳的人已经被逼到不得不提前动身。'], 'tianmen_master_nearby': True}), (33, 6, 60, 57, 73, ['rest'], 'rest', 'manual', {'gu_changfeng_captive': True, 'leader_heading_to_alliance': True, 'enemy_names_seen': ['黑松死士'], 'enemy_factions_seen': ['黑松会'], 'black_pine_activity': True, 'enemy_origins_seen': ['断桥水雾'], 'combat_clues': ['死士临死前喊出“宗师将临天门”，还说沈岳的人已经被逼到不得不提前动身。'], 'tianmen_master_nearby': True}), (34, 6, 61, 75, 99, ['rest'], 'rest', 'manual', {'gu_changfeng_captive': True, 'leader_heading_to_alliance': True, 'enemy_names_seen': ['黑松死士'], 'enemy_factions_seen': ['黑松会'], 'black_pine_activity': True, 'enemy_origins_seen': ['断桥水雾'], 'combat_clues': ['死士临死前喊出“宗师将临天门”，还说沈岳的人已经被逼到不得不提前动身。'], 'tianmen_master_nearby': True}), (35, 6, 62, 93, 100, ['rest'], 'rest', 'manual', {'gu_changfeng_captive': True, 'leader_heading_to_alliance': True, 'enemy_names_seen': ['黑松死士'], 'enemy_factions_seen': ['黑松会'], 'black_pine_activity': True, 'enemy_origins_seen': ['断桥水雾'], 'combat_clues': ['死士临死前喊出“宗师将临天门”，还说沈岳的人已经被逼到不得不提前动身。'], 'tianmen_master_nearby': True}), (36, 6, 63, 100, 100, ['rest'], 'rest', 'manual', {'gu_changfeng_captive': True, 'leader_heading_to_alliance': True, 'enemy_names_seen': ['黑松死士'], 'enemy_factions_seen': ['黑松会'], 'black_pine_activity': True, 'enemy_origins_seen': ['断桥水雾'], 'combat_clues': ['死士临死前喊出“宗师将临天门”，还说沈岳的人已经被逼到不得不提前动身。'], 'tianmen_master_nearby': True}), (37, 7, 65, 100, 100, ['query'], 'query', 'option', {'gu_changfeng_captive': True, 'leader_heading_to_alliance': True, 'enemy_names_seen': ['黑松死士'], 'enemy_factions_seen': ['黑松会'], 'black_pine_activity': True, 'enemy_origins_seen': ['断桥水雾'], 'combat_clues': ['死士临死前喊出“宗师将临天门”，还说沈岳的人已经被逼到不得不提前动身。'], 'tianmen_master_nearby': True}), ('boss_seq', ['轻功', '内功', '轻功', '招架', '轻功', '绝技', '轻功', '内功', '轻功', '绝技', '内功', '轻功'])]
+RESULT_DEBUG= {'boss': 'won', 'ending': '义满江湖', 'ending_reasons': {'wudao': False, 'yiman': True, 'caifu': False, 'zhenxiang': False, 'npc_allies_ge3': True}}

@@ -149,3 +149,29 @@ def test_boss_defeat_triggers_game_over() -> None:
     assert bool(result.get("debug", {}).get("game_over")) is True
     assert "本局失败" in str(result.get("narration") or "")
     assert any(str(opt.get("text") or "") == "/reset" for opt in (result.get("options") or []))
+
+
+def test_boss_battle_has_winning_path_for_default_finale_state() -> None:
+    e = GameEngine()
+    e.client = OfflineLLMClient()
+    st = e.state
+    st.flags["stage_idx"] = 7
+    st.flags["progress"] = 65
+    st.health = 100
+    st.stamina = 100
+    st.martial_level = 1 + st.flags["progress"] // 14
+    st.inner_power = min(180, st.flags["progress"] * 2 + st.reputation)
+
+    start = e.boss_skill_action("内功")
+    assert start.get("debug", {}).get("boss") == "started"
+
+    result = start
+    sequence = ["轻功", "内功", "轻功", "招架", "轻功", "绝技", "轻功", "内功", "轻功", "绝技", "内功", "轻功"]
+    for skill in sequence:
+        result = e.boss_skill_action(skill)
+        if result.get("debug", {}).get("boss") in {"won", "lost"}:
+            break
+
+    assert result.get("debug", {}).get("boss") == "won"
+    assert bool(st.flags.get("final_clear")) is True
+    assert st.health > 0
